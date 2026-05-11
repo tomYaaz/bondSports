@@ -53,7 +53,7 @@ function makeHost(
   return {
     host,
     response,
-    getBody: () => response.json.mock.calls[0][0] as CapturedBody,
+    getBody: () => (response.json.mock.calls as Array<[CapturedBody]>)[0][0],
   };
 }
 
@@ -85,7 +85,7 @@ describe('HttpExceptionFilter', () => {
     const { host, getBody } = makeHost();
     class StringEx extends HttpException {
       constructor() {
-        super('plain string body', HttpStatus.IM_A_TEAPOT);
+        super('plain string body', 418);
       }
     }
     filter.catch(new StringEx(), host);
@@ -151,7 +151,7 @@ describe('HttpExceptionFilter', () => {
       }),
     } as unknown as ArgumentsHost;
     filter.catch(new NotFoundException(), host);
-    const body = response.json.mock.calls[0][0] as CapturedBody;
+    const body = (response.json.mock.calls as Array<[CapturedBody]>)[0][0];
     expect(body.path).toBe('/from-path');
   });
 
@@ -175,7 +175,7 @@ describe('HttpExceptionFilter', () => {
     it('falls back to "Error" for non-mapped statuses', () => {
       class TeapotEx extends HttpException {
         constructor() {
-          super('short and stout', HttpStatus.IM_A_TEAPOT);
+          super('short and stout', 418);
         }
       }
       const { host, getBody } = makeHost();

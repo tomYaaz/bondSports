@@ -82,16 +82,29 @@ describe('Statements (e2e)', () => {
     const tx2 = await deposit(app, token, id, 'stmt-d2', '2.000000');
     const tx3 = await deposit(app, token, id, 'stmt-d3', '3.000000');
 
-    await rewriteTransactionDate(dataSource, tx1.transactionId, '2026-01-01T12:00:00.000Z');
-    await rewriteTransactionDate(dataSource, tx2.transactionId, '2026-01-02T12:00:00.000Z');
-    await rewriteTransactionDate(dataSource, tx3.transactionId, '2026-01-03T12:00:00.000Z');
+    await rewriteTransactionDate(
+      dataSource,
+      tx1.transactionId,
+      '2026-01-01T12:00:00.000Z',
+    );
+    await rewriteTransactionDate(
+      dataSource,
+      tx2.transactionId,
+      '2026-01-02T12:00:00.000Z',
+    );
+    await rewriteTransactionDate(
+      dataSource,
+      tx3.transactionId,
+      '2026-01-03T12:00:00.000Z',
+    );
 
     const res = await request(app.getHttpServer())
       .get(`/accounts/${id}/statement`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    expect(res.body.items.map((i: { transactionId: string }) => i.transactionId)).toEqual([
+    const items = res.body.items as Array<{ transactionId: string }>;
+    expect(items.map((i) => i.transactionId)).toEqual([
       tx3.transactionId,
       tx2.transactionId,
       tx1.transactionId,
@@ -105,16 +118,29 @@ describe('Statements (e2e)', () => {
     const tx2 = await deposit(app, token, id, 'b-2', '2.000000');
     const tx3 = await deposit(app, token, id, 'b-3', '3.000000');
 
-    await rewriteTransactionDate(dataSource, tx1.transactionId, '2026-01-31T23:59:59.000Z');
-    await rewriteTransactionDate(dataSource, tx2.transactionId, '2026-02-01T00:00:00.000Z');
-    await rewriteTransactionDate(dataSource, tx3.transactionId, '2026-02-28T23:59:59.000Z');
+    await rewriteTransactionDate(
+      dataSource,
+      tx1.transactionId,
+      '2026-01-31T23:59:59.000Z',
+    );
+    await rewriteTransactionDate(
+      dataSource,
+      tx2.transactionId,
+      '2026-02-01T00:00:00.000Z',
+    );
+    await rewriteTransactionDate(
+      dataSource,
+      tx3.transactionId,
+      '2026-02-28T23:59:59.000Z',
+    );
 
     const res = await request(app.getHttpServer())
       .get(`/accounts/${id}/statement?from=2026-02-01&to=2026-02-28&limit=50`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    const ids = res.body.items.map((i: { transactionId: string }) => i.transactionId);
+    const items = res.body.items as Array<{ transactionId: string }>;
+    const ids = items.map((i) => i.transactionId);
     expect(ids).toContain(tx2.transactionId);
     expect(ids).toContain(tx3.transactionId);
     expect(ids).not.toContain(tx1.transactionId);
@@ -161,11 +187,9 @@ describe('Statements (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    const seen = [
-      ...p1.body.items,
-      ...p2.body.items,
-      ...p3.body.items,
-    ].map((i: { transactionId: string }) => i.transactionId);
+    const seen = [...p1.body.items, ...p2.body.items, ...p3.body.items].map(
+      (i: { transactionId: string }) => i.transactionId,
+    );
     expect(new Set(seen).size).toBe(seen.length);
     expect(new Set(seen).size).toBe(created.length);
   });

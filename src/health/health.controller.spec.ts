@@ -1,9 +1,7 @@
 import { DataSource } from 'typeorm';
 import { HealthController } from './health.controller';
 
-function makeDataSource(
-  query: jest.Mock,
-): DataSource {
+function makeDataSource(query: jest.Mock): DataSource {
   return { query } as unknown as DataSource;
 }
 

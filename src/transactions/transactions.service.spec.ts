@@ -101,11 +101,13 @@ function makeRepo(
   };
 }
 
-function buildService(opts: {
-  managerAccountRepo?: FakeRepo;
-  managerTransactionRepo?: FakeRepo;
-  transactionRepo?: FakeRepo;
-} = {}) {
+function buildService(
+  opts: {
+    managerAccountRepo?: FakeRepo;
+    managerTransactionRepo?: FakeRepo;
+    transactionRepo?: FakeRepo;
+  } = {},
+) {
   const managerAccountRepo = opts.managerAccountRepo ?? makeRepo();
   const managerTransactionRepo = opts.managerTransactionRepo ?? makeRepo();
   const transactionRepo = opts.transactionRepo ?? makeRepo();
@@ -126,11 +128,11 @@ function buildService(opts: {
     findOneByIdOrNotFound: jest.fn(),
     create: jest.fn(),
     setActive: jest.fn(),
-  } as unknown as jest.Mocked<AccountsService>;
+  };
   const service = new TransactionsService(
     dataSource,
     transactionRepo as unknown as Repository<Transaction>,
-    accountsService,
+    accountsService as unknown as AccountsService,
   );
   return {
     service,
@@ -225,7 +227,9 @@ describe('TransactionsService.deposit — contract', () => {
   });
 
   it('throws ConflictException when same idempotency key is replayed with a different amount', async () => {
-    const managerAccountRepo = makeRepo({ qbs: [chainQB({ getOne: account() })] });
+    const managerAccountRepo = makeRepo({
+      qbs: [chainQB({ getOne: account() })],
+    });
     const prior = {
       transactionId: 'tx-prior',
       accountId: ACC_ID,
@@ -325,7 +329,9 @@ describe('TransactionsService.withdraw — contract', () => {
   });
 
   it('throws ConflictException when same key is replayed with a different amount', async () => {
-    const managerAccountRepo = makeRepo({ qbs: [chainQB({ getOne: account() })] });
+    const managerAccountRepo = makeRepo({
+      qbs: [chainQB({ getOne: account() })],
+    });
     const prior = {
       transactionId: 'tx-prior-w',
       accountId: ACC_ID,
@@ -387,9 +393,12 @@ describe('TransactionsService.getStatement — contract', () => {
   it('checks ownership first via AccountsService.findOneForOwner', async () => {
     const transactionRepo = makeRepo({ qbs: [chainQB({ getMany: [] })] });
     const { service, accountsService } = buildService({ transactionRepo });
-    accountsService.findOneForOwner.mockResolvedValue({} as never);
+    accountsService.findOneForOwner.mockResolvedValue({});
     await service.getStatement(ACC_ID, PERSON, {});
-    expect(accountsService.findOneForOwner).toHaveBeenCalledWith(ACC_ID, PERSON);
+    expect(accountsService.findOneForOwner).toHaveBeenCalledWith(
+      ACC_ID,
+      PERSON,
+    );
   });
 
   it('propagates NotFound from the ownership check', async () => {
@@ -406,7 +415,7 @@ describe('TransactionsService.getStatement — contract', () => {
   it('rejects when "from" is later than "to" with BadRequestException', async () => {
     const transactionRepo = makeRepo();
     const { service, accountsService } = buildService({ transactionRepo });
-    accountsService.findOneForOwner.mockResolvedValue({} as never);
+    accountsService.findOneForOwner.mockResolvedValue({});
     await expect(
       service.getStatement(ACC_ID, PERSON, {
         from: '2026-02-02',

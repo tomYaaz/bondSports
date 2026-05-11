@@ -41,7 +41,7 @@ describe('LoggingInterceptor', () => {
     interceptor.intercept(ctx, next).subscribe({
       complete: () => {
         expect(logSpy).toHaveBeenCalledTimes(1);
-        const msg = String(logSpy.mock.calls[0][0]);
+        const msg = String((logSpy.mock.calls[0] as [unknown])[0]);
         expect(msg).toContain('GET');
         expect(msg).toContain('/x');
         expect(msg).toContain('200');
@@ -57,7 +57,9 @@ describe('LoggingInterceptor', () => {
     const next: CallHandler = { handle: () => of('ok') };
     interceptor.intercept(ctx, next).subscribe({
       complete: () => {
-        expect(String(logSpy.mock.calls[0][0])).toContain('requestId=unknown');
+        expect(String((logSpy.mock.calls[0] as [unknown])[0])).toContain(
+          'requestId=unknown',
+        );
         done();
       },
     });
@@ -74,7 +76,7 @@ describe('LoggingInterceptor', () => {
     interceptor.intercept(ctx, next).subscribe({
       error: () => {
         expect(warnSpy).toHaveBeenCalledTimes(1);
-        const msg = String(warnSpy.mock.calls[0][0]);
+        const msg = String((warnSpy.mock.calls[0] as [unknown])[0]);
         expect(msg).toContain('POST');
         expect(msg).toContain('/y');
         expect(msg).toContain('422');
@@ -92,7 +94,9 @@ describe('LoggingInterceptor', () => {
     interceptor.intercept(ctx, next).subscribe({
       error: () => {
         expect(warnSpy).toHaveBeenCalledTimes(1);
-        expect(String(warnSpy.mock.calls[0][0])).toContain('ERR');
+        expect(String((warnSpy.mock.calls[0] as [unknown])[0])).toContain(
+          'ERR',
+        );
         done();
       },
     });

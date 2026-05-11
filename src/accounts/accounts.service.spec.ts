@@ -33,7 +33,7 @@ describe('AccountsService.create', () => {
   it('maps CHECKING to accountType 1 with defaults', async () => {
     const dto: CreateAccountDto = { accountType: AccountTypeDto.CHECKING };
     await svc.create(PERSON, dto);
-    const created = repo.create.mock.calls[0][0] as Partial<Account>;
+    const created = (repo.create.mock.calls[0] as [Partial<Account>])[0];
     expect(created.accountType).toBe(1);
     expect(created.activeFlag).toBe(true);
     expect(created.balance).toBe('0.000000');
@@ -44,7 +44,7 @@ describe('AccountsService.create', () => {
   it('maps SAVINGS to accountType 2', async () => {
     const dto: CreateAccountDto = { accountType: AccountTypeDto.SAVINGS };
     await svc.create(PERSON, dto);
-    const created = repo.create.mock.calls[0][0] as Partial<Account>;
+    const created = (repo.create.mock.calls[0] as [Partial<Account>])[0];
     expect(created.accountType).toBe(2);
   });
 
@@ -54,7 +54,7 @@ describe('AccountsService.create', () => {
       dailyWithdrawalLimit: '750',
     };
     await svc.create(PERSON, dto);
-    const created = repo.create.mock.calls[0][0] as Partial<Account>;
+    const created = (repo.create.mock.calls[0] as [Partial<Account>])[0];
     expect(created.dailyWithdrawalLimit).toBe('750.000000');
   });
 
@@ -113,7 +113,7 @@ describe('AccountsService.findOneForOwner', () => {
     repo.findOne.mockResolvedValue({
       accountId: 'a',
       personId: OTHER,
-    } as Account);
+    });
     await expect(svc.findOneForOwner('a', PERSON)).rejects.toBeInstanceOf(
       NotFoundException,
     );
@@ -153,7 +153,11 @@ describe('AccountsService.setActive', () => {
   });
 
   it('blocks (activeFlag=false) and saves', async () => {
-    const acc = { accountId: 'a', personId: PERSON, activeFlag: true } as Account;
+    const acc = {
+      accountId: 'a',
+      personId: PERSON,
+      activeFlag: true,
+    } as Account;
     repo.findOne.mockResolvedValue(acc);
     await svc.setActive('a', false);
     expect(acc.activeFlag).toBe(false);

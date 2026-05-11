@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- supertest JSON bodies are untyped */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access -- supertest JSON bodies are untyped */
 /**
  * Property / invariant tests at the HTTP boundary.
  *
@@ -164,9 +164,10 @@ describe('Property / invariant tests (e2e)', () => {
         .get(`/accounts/${id}/statement?limit=200`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
-      const rowsForKey = stmt.body.items.filter(
-        (it: { idempotencyKey?: string }) => it.idempotencyKey === key,
-      );
+      const stmtItems = stmt.body.items as Array<{
+        idempotencyKey?: string;
+      }>;
+      const rowsForKey = stmtItems.filter((it) => it.idempotencyKey === key);
       expect(rowsForKey.length).toBe(1);
 
       const finalBalance = await getBalance(app, token, id);
@@ -256,7 +257,13 @@ describe('Property / invariant tests (e2e)', () => {
       const token = generateTestToken(OWNER);
       const id = await createAccount(app, token);
 
-      const values = ['1.000000', '2.000000', '3.000000', '4.000000', '5.000000'];
+      const values = [
+        '1.000000',
+        '2.000000',
+        '3.000000',
+        '4.000000',
+        '5.000000',
+      ];
       const responses = await Promise.all(
         values.map((v, i) =>
           request(app.getHttpServer())
@@ -270,10 +277,7 @@ describe('Property / invariant tests (e2e)', () => {
         expect(r.status).toBe(200);
       }
 
-      const expected = values.reduce(
-        (acc, v) => acc.plus(v),
-        new Decimal(0),
-      );
+      const expected = values.reduce((acc, v) => acc.plus(v), new Decimal(0));
       const final = await getBalance(app, token, id);
       expect(new Decimal(final).eq(expected)).toBe(true);
     });

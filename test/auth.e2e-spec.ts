@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- supertest JSON bodies are untyped */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access -- supertest JSON bodies are untyped */
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createConfiguredApp } from './helpers/create-app';
@@ -58,7 +58,9 @@ describe('JWT auth (e2e)', () => {
   });
 
   it('Swagger UI (/api/docs) is reachable without JWT', async () => {
-    const res = await request(app.getHttpServer()).get('/api/docs').redirects(1);
+    const res = await request(app.getHttpServer())
+      .get('/api/docs')
+      .redirects(1);
     expect(res.status).not.toBe(401);
     expect(res.status).toBe(200);
     expect(res.text).toContain('Swagger');

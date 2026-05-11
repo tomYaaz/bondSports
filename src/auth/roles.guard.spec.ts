@@ -25,9 +25,9 @@ function makeReflector(required: string[] | undefined): Reflector {
 describe('RolesGuard', () => {
   it('allows when no @Roles metadata is present', () => {
     const guard = new RolesGuard(makeReflector(undefined));
-    expect(
-      guard.canActivate(makeContext({ personId: 'p', roles: [] })),
-    ).toBe(true);
+    expect(guard.canActivate(makeContext({ personId: 'p', roles: [] }))).toBe(
+      true,
+    );
   });
 
   it('allows when metadata is an empty array', () => {
