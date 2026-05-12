@@ -14,9 +14,31 @@ const PORT_RANGE_FIRST = 3000;
 const PORT_RANGE_LAST = 3009;
 const PORT_COUNT = PORT_RANGE_LAST - PORT_RANGE_FIRST + 1;
 
-async function listenOnFirstAvailablePort(
-  app: INestApplication,
-): Promise<number> {
+function errno(err: unknown): string | undefined {
+  return err && typeof err === 'object' && 'code' in err
+    ? (err as NodeJS.ErrnoException).code
+    : undefined;
+}
+
+/**
+ * Parses `process.env.PORT` when set. Throws if set but not a valid TCP port number.
+ */
+function parseEnvPort(): number | undefined {
+  const raw = process.env.PORT;
+  if (raw === undefined || raw.trim() === '') {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  const n = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(n) || String(n) !== trimmed || n < 1 || n > 65535) {
+    throw new Error(
+      `Invalid PORT environment variable (expected integer 1-65535): ${JSON.stringify(raw)}`,
+    );
+  }
+  return n;
+}
+
+async function listenOnPortRange(app: INestApplication): Promise<number> {
   for (let port = PORT_RANGE_FIRST; port <= PORT_RANGE_LAST; port++) {
     try {
       await app.listen(port);
@@ -29,10 +51,7 @@ async function listenOnFirstAvailablePort(
       }
       return port;
     } catch (err: unknown) {
-      const code =
-        err && typeof err === 'object' && 'code' in err
-          ? (err as NodeJS.ErrnoException).code
-          : undefined;
+      const code = errno(err);
       if (code === 'EADDRINUSE') {
         if (port < PORT_RANGE_LAST) {
           continue;
@@ -48,6 +67,33 @@ async function listenOnFirstAvailablePort(
   throw new Error(
     `No free port in range ${PORT_RANGE_FIRST}-${PORT_RANGE_LAST} (all ${PORT_COUNT} ports in use)`,
   );
+}
+
+/**
+ * Prefer `process.env.PORT` when set; if that port is already in use, scan 3000–3009.
+ * When `PORT` is unset, scan 3000–3009 only (previous behavior).
+ */
+async function listenOnEnvPortOrFallbackRange(
+  app: INestApplication,
+): Promise<number> {
+  const preferred = parseEnvPort();
+  if (preferred !== undefined) {
+    try {
+      await app.listen(preferred);
+      logger.log(`Listening on port ${preferred} (from PORT)`);
+      return preferred;
+    } catch (err: unknown) {
+      if (errno(err) === 'EADDRINUSE') {
+        logger.warn(
+          `Port ${preferred} from PORT is in use; trying fallback range ${PORT_RANGE_FIRST}-${PORT_RANGE_LAST}`,
+        );
+        return listenOnPortRange(app);
+      }
+      throw err;
+    }
+  }
+
+  return listenOnPortRange(app);
 }
 
 async function bootstrap() {
@@ -81,7 +127,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  await listenOnFirstAvailablePort(app);
+  await listenOnEnvPortOrFallbackRange(app);
 }
 
 void bootstrap();

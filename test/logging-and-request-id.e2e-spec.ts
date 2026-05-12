@@ -16,7 +16,7 @@ describe('Request id propagation in error responses (e2e)', () => {
 
   it('includes a UUID requestId in the error body when no x-request-id header is sent', async () => {
     const res = await request(app.getHttpServer())
-      .post('/_validation-smoke')
+      .post('/validation_smoke')
       .send({})
       .expect(400);
     expect(res.body.requestId).toMatch(
@@ -27,7 +27,7 @@ describe('Request id propagation in error responses (e2e)', () => {
   it('echoes the client-supplied x-request-id in the error body', async () => {
     const myId = 'req-id-from-client-abc-123';
     const res = await request(app.getHttpServer())
-      .post('/_validation-smoke')
+      .post('/validation_smoke')
       .set('x-request-id', myId)
       .send({})
       .expect(400);
@@ -36,11 +36,11 @@ describe('Request id propagation in error responses (e2e)', () => {
 
   it('generates distinct request ids across calls when client does not send one', async () => {
     const a = await request(app.getHttpServer())
-      .post('/_validation-smoke')
+      .post('/validation_smoke')
       .send({})
       .expect(400);
     const b = await request(app.getHttpServer())
-      .post('/_validation-smoke')
+      .post('/validation_smoke')
       .send({})
       .expect(400);
     expect(a.body.requestId).not.toBe(b.body.requestId);

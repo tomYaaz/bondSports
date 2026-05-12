@@ -193,7 +193,11 @@ export class TransactionsService {
     accountId: string,
     personId: string,
     filter: StatementFilterDto,
-  ): Promise<{ items: Transaction[]; nextCursor?: string }> {
+  ): Promise<{
+    items: Transaction[];
+    nextCursor?: string;
+    hasNextPage: boolean;
+  }> {
     await this.accountsService.findOneForOwner(accountId, personId);
 
     if (
@@ -202,6 +206,14 @@ export class TransactionsService {
       new Date(filter.from) > new Date(filter.to)
     ) {
       throw new BadRequestException('"from" must be earlier than "to"');
+    }
+
+    if (filter.minValue !== undefined && filter.maxValue !== undefined) {
+      const minBound = parsePositiveMoneyString(filter.minValue, 'minValue');
+      const maxBound = parsePositiveMoneyString(filter.maxValue, 'maxValue');
+      if (minBound.gt(maxBound)) {
+        throw new BadRequestException('"minValue" must not exceed "maxValue"');
+      }
     }
 
     const order = filter.order ?? 'DESC';
@@ -219,6 +231,16 @@ export class TransactionsService {
       const toStartUTC = new Date(`${filter.to}T00:00:00.000Z`);
       const toNextDayUTC = new Date(toStartUTC.getTime() + 86400000);
       qb.andWhere('t.transactionDate < :toNextDayUTC', { toNextDayUTC });
+    }
+
+    if (filter.type !== undefined) {
+      qb.andWhere('t.type = :stmtType', { stmtType: filter.type });
+    }
+    if (filter.minValue !== undefined) {
+      qb.andWhere('t.value >= :minValue', { minValue: filter.minValue });
+    }
+    if (filter.maxValue !== undefined) {
+      qb.andWhere('t.value <= :maxValue', { maxValue: filter.maxValue });
     }
 
     if (filter.cursor) {
@@ -252,6 +274,6 @@ export class TransactionsService {
           )
         : undefined;
 
-    return { items, nextCursor };
+    return { items, nextCursor, hasNextPage: hasMore };
   }
 }

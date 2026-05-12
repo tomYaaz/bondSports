@@ -106,7 +106,11 @@ export class TransactionsController {
 
   @Get(':id/statement')
   @ApiOperation({ summary: 'Account statement (paginated)' })
-  @ApiResponse({ status: 200, description: '{ items, nextCursor? }' })
+  @ApiResponse({
+    status: 200,
+    description:
+      '{ items, nextCursor?, hasNextPage } — hasNextPage is false on the final page',
+  })
   @ApiResponse({ status: 400, description: 'Invalid date range' })
   @ApiResponse({ status: 404, description: 'Not found or not owned' })
   statement(

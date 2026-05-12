@@ -14,17 +14,17 @@ describe('Global ValidationPipe + HttpExceptionFilter (e2e)', () => {
     await app.close();
   });
 
-  it('POST /_validation-smoke with valid body returns 201/200 and echoes label', async () => {
+  it('POST /validation_smoke with valid body returns 201/200 and echoes label', async () => {
     const res = await request(app.getHttpServer())
-      .post('/_validation-smoke')
+      .post('/validation_smoke')
       .send({ label: 'hello' });
     expect([200, 201]).toContain(res.status);
     expect(res.body).toEqual({ ok: true, label: 'hello' });
   });
 
-  it('POST /_validation-smoke with missing label returns 400 with structured filter body', async () => {
+  it('POST /validation_smoke with missing label returns 400 with structured filter body', async () => {
     const res = await request(app.getHttpServer())
-      .post('/_validation-smoke')
+      .post('/validation_smoke')
       .send({})
       .expect(400);
 
@@ -37,9 +37,9 @@ describe('Global ValidationPipe + HttpExceptionFilter (e2e)', () => {
     expect(typeof res.body.requestId).toBe('string');
   });
 
-  it('POST /_validation-smoke with extra unknown field is rejected (forbidNonWhitelisted)', async () => {
+  it('POST /validation_smoke with extra unknown field is rejected (forbidNonWhitelisted)', async () => {
     await request(app.getHttpServer())
-      .post('/_validation-smoke')
+      .post('/validation_smoke')
       .send({ label: 'ok', extra: 'nope' })
       .expect(400);
   });

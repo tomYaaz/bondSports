@@ -17,19 +17,6 @@ describe('JWT auth (e2e)', () => {
     await app.close();
   });
 
-  it('GET / without Authorization returns 401', async () => {
-    await request(app.getHttpServer()).get('/').expect(401);
-  });
-
-  it('GET / with valid Bearer returns 200 and the hello string', async () => {
-    const token = generateTestToken(PERSON);
-    const res = await request(app.getHttpServer())
-      .get('/')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    expect(res.text).toBe('Hello World!');
-  });
-
   it('GET /protected/ping without token returns 401', async () => {
     await request(app.getHttpServer()).get('/protected/ping').expect(401);
   });

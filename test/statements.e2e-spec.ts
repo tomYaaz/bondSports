@@ -37,6 +37,22 @@ async function deposit(
   return res.body.transaction as { transactionId: string };
 }
 
+async function withdraw(
+  app: INestApplication,
+  token: string,
+  id: string,
+  key: string,
+  value: string,
+): Promise<{ transactionId: string }> {
+  const res = await request(app.getHttpServer())
+    .post(`/accounts/${id}/withdraw`)
+    .set('Authorization', `Bearer ${token}`)
+    .set('Idempotency-Key', key)
+    .send({ value })
+    .expect(200);
+  return res.body.transaction as { transactionId: string };
+}
+
 async function rewriteTransactionDate(
   ds: DataSource,
   txId: string,
@@ -157,6 +173,7 @@ describe('Statements (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(res.body.items.length).toBe(2);
+    expect(res.body.hasNextPage).toBe(true);
     expect(typeof res.body.nextCursor).toBe('string');
     expect(res.body.nextCursor.length).toBeGreaterThan(0);
   });
@@ -186,6 +203,10 @@ describe('Statements (e2e)', () => {
       )
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
+
+    expect(p1.body.hasNextPage).toBe(true);
+    expect(p2.body.hasNextPage).toBe(true);
+    expect(p3.body.hasNextPage).toBe(false);
 
     const seen = [...p1.body.items, ...p2.body.items, ...p3.body.items].map(
       (i: { transactionId: string }) => i.transactionId,
@@ -226,6 +247,70 @@ describe('Statements (e2e)', () => {
     const id = await createAccount(app, token);
     await request(app.getHttpServer())
       .get(`/accounts/${id}/statement?from=2026-02-02&to=2026-01-01`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('filters by transaction type', async () => {
+    const token = generateTestToken(OWNER);
+    const id = await createAccount(app, token);
+    await deposit(app, token, id, 'ft-d1', '100.000000');
+    await deposit(app, token, id, 'ft-d2', '50.000000');
+    await withdraw(app, token, id, 'ft-w1', '10.000000');
+
+    const depositsOnly = await request(app.getHttpServer())
+      .get(`/accounts/${id}/statement?type=DEPOSIT`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const withdrawalsOnly = await request(app.getHttpServer())
+      .get(`/accounts/${id}/statement?type=WITHDRAWAL`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(depositsOnly.body.items.length).toBe(2);
+    expect(
+      (depositsOnly.body.items as Array<{ type: string }>).every(
+        (i) => i.type === 'DEPOSIT',
+      ),
+    ).toBe(true);
+
+    expect(withdrawalsOnly.body.items.length).toBe(1);
+    expect(withdrawalsOnly.body.items[0].type).toBe('WITHDRAWAL');
+  });
+
+  it('filters by inclusive minValue and maxValue', async () => {
+    const token = generateTestToken(OWNER);
+    const id = await createAccount(app, token);
+    const low = await deposit(app, token, id, 'amt-1', '1.000000');
+    const mid = await deposit(app, token, id, 'amt-2', '5.000000');
+    const high = await deposit(app, token, id, 'amt-3', '10.000000');
+
+    const res = await request(app.getHttpServer())
+      .get(`/accounts/${id}/statement?minValue=5.000000&maxValue=10.000000`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const ids = (res.body.items as Array<{ transactionId: string }>).map(
+      (i) => i.transactionId,
+    );
+    expect(ids.sort()).toEqual([mid.transactionId, high.transactionId].sort());
+    expect(ids).not.toContain(low.transactionId);
+  });
+
+  it('rejects invalid transaction type with 400', async () => {
+    const token = generateTestToken(OWNER);
+    const id = await createAccount(app, token);
+    await request(app.getHttpServer())
+      .get(`/accounts/${id}/statement?type=INVALID`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('rejects minValue greater than maxValue with 400', async () => {
+    const token = generateTestToken(OWNER);
+    const id = await createAccount(app, token);
+    await request(app.getHttpServer())
+      .get(`/accounts/${id}/statement?minValue=10&maxValue=5`)
       .set('Authorization', `Bearer ${token}`)
       .expect(400);
   });

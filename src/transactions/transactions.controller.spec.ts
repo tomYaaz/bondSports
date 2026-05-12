@@ -59,7 +59,7 @@ describe('TransactionsController', () => {
       to: '2026-01-31',
       limit: 50,
     };
-    svc.getStatement.mockResolvedValue({ items: [] });
+    svc.getStatement.mockResolvedValue({ items: [], hasNextPage: false });
     void ctl.statement('acc-uuid', USER, dto);
     expect(svc.getStatement).toHaveBeenCalledWith(
       'acc-uuid',

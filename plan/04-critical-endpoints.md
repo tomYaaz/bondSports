@@ -19,6 +19,7 @@ To avoid ambiguity for evaluators and clients, standardize these â€œhappy pathâ€
 Protected routes (everything except `@Public()` e.g. `/api/docs`, `/health`): **401** if JWT is missing or invalid.
 
 - **POST `/accounts`**
+  - **Policy:** A single authenticated user (`personId` from the JWT) may create **any number** of accounts. There is **no** cap of one account per person, and **no** cap of one account per type: the same user may hold **multiple CHECKING and/or multiple SAVINGS** accounts. Each account is a distinct row with its own `accountId`, balance, and statement.
   - **201** created (returns account)
   - **400** validation error
   - **401** not authenticated

@@ -147,6 +147,16 @@ const PERSON = '00000000-0000-0000-0000-000000000001';
 const OTHER = '00000000-0000-0000-0000-000000000002';
 const ACC_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
+function statementTx(iso: string, transactionId: string): Transaction {
+  return {
+    transactionId,
+    accountId: ACC_ID,
+    value: '1.000000',
+    type: TransactionType.DEPOSIT,
+    transactionDate: new Date(iso),
+  } as Transaction;
+}
+
 function account(overrides: Partial<Account> = {}): Account {
   return {
     accountId: ACC_ID,
@@ -394,11 +404,14 @@ describe('TransactionsService.getStatement — contract', () => {
     const transactionRepo = makeRepo({ qbs: [chainQB({ getMany: [] })] });
     const { service, accountsService } = buildService({ transactionRepo });
     accountsService.findOneForOwner.mockResolvedValue({});
-    await service.getStatement(ACC_ID, PERSON, {});
+    const result = await service.getStatement(ACC_ID, PERSON, {});
     expect(accountsService.findOneForOwner).toHaveBeenCalledWith(
       ACC_ID,
       PERSON,
     );
+    expect(result.items).toEqual([]);
+    expect(result.hasNextPage).toBe(false);
+    expect(result.nextCursor).toBeUndefined();
   });
 
   it('propagates NotFound from the ownership check', async () => {
@@ -422,5 +435,62 @@ describe('TransactionsService.getStatement — contract', () => {
         to: '2026-01-01',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects when minValue is greater than maxValue', async () => {
+    const transactionRepo = makeRepo();
+    const { service, accountsService } = buildService({ transactionRepo });
+    accountsService.findOneForOwner.mockResolvedValue({});
+    await expect(
+      service.getStatement(ACC_ID, PERSON, {
+        minValue: '10.000000',
+        maxValue: '5.000000',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('sets hasNextPage false and omits nextCursor on the last page', async () => {
+    const rows = [
+      statementTx(
+        '2026-01-15T12:00:00.000Z',
+        '11111111-1111-1111-1111-111111111111',
+      ),
+      statementTx(
+        '2026-01-14T12:00:00.000Z',
+        '22222222-2222-2222-2222-222222222222',
+      ),
+    ];
+    const transactionRepo = makeRepo({ qbs: [chainQB({ getMany: rows })] });
+    const { service, accountsService } = buildService({ transactionRepo });
+    accountsService.findOneForOwner.mockResolvedValue({});
+    const result = await service.getStatement(ACC_ID, PERSON, { limit: 2 });
+    expect(result.items).toHaveLength(2);
+    expect(result.hasNextPage).toBe(false);
+    expect(result.nextCursor).toBeUndefined();
+  });
+
+  it('sets hasNextPage true and nextCursor when another page exists', async () => {
+    const rows = [
+      statementTx(
+        '2026-01-16T12:00:00.000Z',
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      ),
+      statementTx(
+        '2026-01-15T12:00:00.000Z',
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      ),
+      statementTx(
+        '2026-01-14T12:00:00.000Z',
+        'cccccccc-cccc-cccc-cccc-cccccccccccc',
+      ),
+    ];
+    const transactionRepo = makeRepo({ qbs: [chainQB({ getMany: rows })] });
+    const { service, accountsService } = buildService({ transactionRepo });
+    accountsService.findOneForOwner.mockResolvedValue({});
+    const result = await service.getStatement(ACC_ID, PERSON, { limit: 2 });
+    expect(result.items).toHaveLength(2);
+    expect(result.hasNextPage).toBe(true);
+    expect(typeof result.nextCursor).toBe('string');
+    expect(result.nextCursor!.length).toBeGreaterThan(0);
   });
 });

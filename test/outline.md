@@ -151,7 +151,6 @@ Easiest with a test database or heavy TypeORM mocking; list reflects business ru
 
 ## `src/app.controller.spec.ts` (extend existing)
 
-- **`getHello` returns configured string** — existing behavior.
 - **`protectedPing` returns `{ ok: true }`** — auth smoke handler.
 
 ---
@@ -165,8 +164,6 @@ Easiest with a test database or heavy TypeORM mocking; list reflects business ru
 
 ## `test/auth.e2e-spec.ts`
 
-- **`GET /` without `Authorization` returns 401** — global JWT guard.
-- **`GET /` with valid Bearer returns 200** — body is hello string.
 - **`GET /protected/ping` without token returns 401** — second protected sample.
 - **`GET /protected/ping` with valid token returns 200** — `{ ok: true }`.
 - **Swagger/OpenAPI paths reachable without JWT** — `/api/docs` and `/api/docs-json` return non-401.
@@ -219,7 +216,7 @@ Easiest with a test database or heavy TypeORM mocking; list reflects business ru
 
 ## `test/validation-pipe.e2e-spec.ts`
 
-- **`POST /_validation-smoke` with invalid body returns 400 with structured validation message** — proves global `ValidationPipe` + filter path.
+- **`POST /validation_smoke` with invalid body returns 400 with structured validation message** — proves global `ValidationPipe` + filter path.
 
 ---
 

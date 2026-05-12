@@ -35,7 +35,11 @@ export class AccountsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create account (personId from JWT)' })
+  @ApiOperation({
+    summary: 'Create account (personId from JWT)',
+    description:
+      'Creates a new account for the JWT subject. The same user may create multiple accounts, including multiple CHECKING and/or multiple SAVINGS; there is no per-type or per-person limit.',
+  })
   @ApiBody({ type: CreateAccountDto })
   @ApiResponse({ status: 201, description: 'Account created' })
   @ApiResponse({ status: 400, description: 'Validation error' })
